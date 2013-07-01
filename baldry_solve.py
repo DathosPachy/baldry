@@ -15,7 +15,7 @@ def usefits(filename, ucol, rcol, votecol, (cl, ch), (rl, rh)):
 	raw = raw[colcond]
 	u, r, vote = np.asfarray(raw.field(ucol), dtype = float), np.asfarray(raw.field(rcol), dtype = float), np.asfarray(raw.field(votecol), dtype = float)
 	mixed_data = np.column_stack((u, r, u - r, vote)) # use for vote morphology
-	mixed_data = np.column_stack((u, r, u - r)) # use for base case
+	# mixed_data = np.column_stack((u, r, u - r)) # use for base case
 	# print 'mixed data:', '\n', mixed_data
 	return mixed_data
 
@@ -61,10 +61,10 @@ def g_guess(mbins):
 	# g = np.array( [ [.5, .3, 2.0, 2.52, 120., 325.], [.75, .3, 2.1, 2.57, 450., 1050.], [.6, .4, 2.1, 2.55, 1800., 4800.], [.7, .4, 1.85, 2.5, 4250., 13000.], [.7, .4, 1.8, 2.5, 12000., 16500.], [.3, .2, 2.0, 2.65, 12000., 25000.], [.7, .6, 1.5, 2.5, 20000., 20000.], [.6, .8, 1.3, 2.2, 10000., 5000.], [.2, .1, 1.3, 2.3, 5000., 500.], [.8, .5, 1.1, 2.35, 5500., 2.5] ] ) # rh = -18, mbins = 10, cbins = 10
 	# g = np.array( [ [.5, .3, 2.0, 2.52, 120., 325.], [.75, .3, 2.1, 2.57, 450., 1050.], [.6, .4, 2.1, 2.55, 1800., 4800.], [.7, .4, 1.85, 2.5, 4250., 13000.], [.7, .4, 1.8, 2.5, 12000., 16500.], [.3, .2, 2.0, 2.65, 12000., 25000.], [.25, .25, 1.5, 2.5, 20000., 20000.], [.3, .3, 1.5, 2.2, 12000., 5000.], [.2, .1, 1.3, 2.3, 5000., 500.] ] ) # rh = -17.7, mbins = 9, cbins = 20
 	# g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT, AND FOR UNC FLAG (votecol = 2)
-	# g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.75, 2.5, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 175000., 90000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE FOR SPIRAL FLAG (votecol = 0)
+	g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.75, 2.5, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.2, 100., 1350.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE FOR SPIRAL FLAG (votecol = 0)
 	# g = np.array( [ [.2, .15, 1.2, 2.45, 5., 13.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.45, 2.3, 8000., 4700.], [.2, .5, 1.3, 2.3, 3., 600.] ] ) # USE THIS FOR ELLIPTICAL FLAG (votecol = 1)
 	# g = np.array( [ [.2, .15, 1.15, 2.45, 5., 13.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.3, 2.4, 100., 100.], [.2, .45, 1.3, 2.3, 50., 10.] ] ) # USE THIS FOR ELLIPTICAL deb (votecol = 4)
-	g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT, AND FOR spi_deb(votecol = 3)
+	# g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT, AND FOR spi_deb(votecol = 3)
 	if g.shape == (mbins, 6):
 		return g
 	else:
@@ -80,8 +80,8 @@ def t_guess():
 def fitmagbin(data, mbin, cbins, iteration):
 	import numpy as np
 	from scipy.optimize import curve_fit
-	N, B = np.histogram(data[ : , 2], bins = cbins) # use for base case 
-	# N, B = np.histogram(data[ : , 2], bins = cbins, weights = data[ : , 3]) # use for morphology
+	# N, B = np.histogram(data[ : , 2], bins = cbins) # use for base case 
+	N, B = np.histogram(data[ : , 2], bins = cbins, weights = data[ : , 3]) # use for morphology
 	# print np.sum(np.isnan(N)) # no nans show up
 	E = np.sqrt(N)
 	E = np.where(E > 0., E, 2.)
@@ -204,7 +204,7 @@ rl = -24.
 rh = -17.7
 mbins = 8
 cbins = 20
-votecol = 4
+votecol = 0
 
 mixed_data = usefits('../../Downloads/Zoo1_CM2_zjpace.fit', 6, 7, votecol, (cl, ch), (rl, rh))	# returns array( [ u, r, u - r] )
 
@@ -434,4 +434,4 @@ CB.ax.set_position([ll, b+0.1*h, ww, h*0.8])
 plotoptions('r magnitude', 'color', 'Distribution of galaxies', True, True, ('mean color of red series','mean color of blue cloud','split function'))
 plt.show()
 
-# makelogfile(1, 'zoo1/deb/ell', 'ell', 'deb')
+makelogfile(1, 'zoo1/flags/spi', 'spi', 'flags')
