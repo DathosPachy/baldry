@@ -3,28 +3,43 @@
 def loadfiles(z1file, z2file, morph_col):
 	import numpy as np
 	from pyfits import open
-	zoo1 = open(z1file)[1].data
-	zoo2 = open(z2file)[1].data
+	zoo1_raw = open(z1file)
+	zoo1 = zoo1_raw[1].data
+	zoo2_raw = open(z2file)
+	zoo2 = zoo2_raw[1].data
 	zoo1_objID = zoo1.field(0)
 	zoo2_objID = zoo2.field(232)
 	
-	# zoo1 = zoo1[(zoo1_objID != -9999)]
-	# zoo2 = zoo2[(zoo2_objID != -9999)]
+	cols1 = zoo1_raw[1].columns
+	cols2 = zoo2_raw[1].columns
+	cols1names = cols1.names
+	cols2names = cols2.names
+	
+	print 'Building Zoo2 CMD based on column', morph_col, ':', cols2names[morph_col]
 
 	u, r = np.asfarray(zoo1.field(7), dtype = float), np.asfarray(zoo1.field(8), dtype = float)
-	print u, r, zoo1_objID
-	Z1 = np.hstack( ( zoo1_objID, u, r ) )
-	print type(Z1)
+	Z1 = np.column_stack( ( zoo1_objID, u, r, u - r ) )
+	print 'Z1:'
+	print Z1
 
 	morph = np.asfarray(zoo2.field(morph_col), dtype = float)
-	Z2 = np.hstack( ( zoo2_objID, morph ) )
+	Z2 = np.column_stack( ( zoo2_objID, morph ) )
+	print 'Z2:'
 	print Z2
 	
-	'''sort_idx = np.argsort(Z1[:, 0])
-	sorted_insert = np.searchsorted(Z1[:, 0], sorter = sort_idx)
-	unsorted_insert_np.take(sort_idx, sorted_insert)
+	sort_idx = np.argsort(Z1[:, 0])
+	print 'sort_idx:'
+	print sort_idx
+	sorted_insert = np.searchsorted(Z1[sort_idx, 0], Z2[:, 0], side='left')
+	print 'sorted_insert:'
+	print sorted_insert
+	unsorted_insert = np.take(sort_idx, sorted_insert)
+	print 'unsorted_insert:'
+	print unsorted_insert
 	
-	zoo2_morph = np.hstack((Z2, Z1[unsorted_insert, 1:]))'''
+	zoo2_morph = np.hstack( ( Z2, Z1[unsorted_insert, 1:] ) )
+	print zoo2_morph
+	return zoo2_morph
 
 '''
 def usefits(filename, ucol, rcol, votecol, (cl, ch), (rl, rh)):
