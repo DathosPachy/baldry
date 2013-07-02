@@ -2,7 +2,7 @@
 
 # fits stdev, mean, and abundance amplitude for each magnitude bin
 # weights bins by total bin based on either flag value OR debiased vote fraction, based on votecol specified in usefits
-# fits and outputs parameters for tanhlin(s1/s2/m1/m2)
+# fits and outputs parameters for tanhlin(s1/m1)
 
 def usefits(filename, ucol, rcol, votecol, (cl, ch), (rl, rh)):
 	import numpy as np
@@ -10,14 +10,13 @@ def usefits(filename, ucol, rcol, votecol, (cl, ch), (rl, rh)):
 	hdulist = open(filename)
 	raw = hdulist[1].data
 	u, r = raw.field(ucol), raw.field(rcol)
+	
 	colcond = ((u - r) < ch) & ((u - r) > cl) & (r > rl) & (r < rh)
-	print sum(colcond)
 	raw = raw[colcond]
-	print raw
 	u, r, vote = np.asfarray(raw.field(ucol), dtype = float), np.asfarray(raw.field(rcol), dtype = float), np.asfarray(raw.field(votecol), dtype = float)
 	mixed_data = np.column_stack((u, r, u - r, vote)) # use for vote morphology
-	mixed_data = np.column_stack((u, r, u - r)) # use for base case
-	print 'mixed data:', '\n', mixed_data
+	# mixed_data = np.column_stack((u, r, u - r)) # use for base case
+	# print 'mixed data:', '\n', mixed_data
 	return mixed_data
 
 def binme(data, mag_bins, (cl, ch), (rl, rh)):
@@ -36,8 +35,8 @@ def binme(data, mag_bins, (cl, ch), (rl, rh)):
 
 def fit_arrays(mbins):		# allows us to keep all fit values safe in an array and reference them later
 	import numpy as np
-	OPT = np.zeros(shape = (3, mbins, 6))	# 3d array:  6 columns, mbins rows, times 3 iterations
-	ERR = np.ones(shape = (3, mbins, 6))
+	OPT = np.zeros(shape = (3, mbins, 3))	# 3d array:  6 columns, mbins rows, times 3 iterations
+	ERR = np.ones(shape = (3, mbins, 3))
 	return OPT, ERR
 
 def gauss(x, s, mu, a):
@@ -59,17 +58,11 @@ def func2(x, a1, a2):
 def g_guess(mbins):
 	import numpy as np
 	from sys import exit
-	# g = np.array( [ [.5, .3, 2.0, 2.52, 120., 325.], [.75, .3, 2.1, 2.57, 450., 1050.], [.6, .4, 2.1, 2.55, 1800., 4800.], [.7, .4, 1.85, 2.5, 4250., 13000.], [.7, .4, 1.8, 2.5, 12000., 16500.], [.3, .2, 2.0, 2.65, 12000., 25000.], [.7, .6, 1.5, 2.5, 20000., 20000.], [.6, .8, 1.3, 2.2, 10000., 5000.], [.2, .1, 1.3, 2.3, 5000., 500.], [.8, .5, 1.1, 2.35, 5500., 2.5] ] ) # rh = -18, mbins = 10, cbins = 10
-	# g = np.array( [ [.5, .3, 2.0, 2.52, 120., 325.], [.75, .3, 2.1, 2.57, 450., 1050.], [.6, .4, 2.1, 2.55, 1800., 4800.], [.7, .4, 1.85, 2.5, 4250., 13000.], [.7, .4, 1.8, 2.5, 12000., 16500.], [.3, .2, 2.0, 2.65, 12000., 25000.], [.25, .25, 1.5, 2.5, 20000., 20000.], [.3, .3, 1.5, 2.2, 12000., 5000.], [.2, .1, 1.3, 2.3, 5000., 500.] ] ) # rh = -17.7, mbins = 9, cbins = 20
-	# g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT, AND FOR UNC FLAG (votecol = 2)
-	# g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.75, 2.5, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 175000., 90000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE FOR SPIRAL FLAG (votecol = 0)
-	# g = np.array( [ [.2, .15, 1.2, 2.45, 5., 13.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.45, 2.3, 8000., 4700.], [.2, .5, 1.3, 2.3, 3., 600.] ] ) # USE THIS FOR ELLIPTICAL FLAG (votecol = 1)
-	# g = np.array( [ [.2, .15, 1.15, 2.45, 5., 13.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.3, 2.4, 100., 100.], [.2, .45, 1.3, 2.3, 50., 10.] ] ) # USE THIS FOR ELLIPTICAL deb (votecol = 4)
-	g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT, AND FOR spi_deb(votecol = 3)
-	if g.shape == (mbins, 6):
+	g = np.array( [ [.2, 2.5, 140.], [.15, 2.55, 650.], [.15, 2.55, 2350.], [.15, 2.5, 3000.], [.6, 2.5, 1500.], [.3, 2.4, 525.], [.6, 2.35, 120.], [.2, 2.4, 14.] ] ) # USE FOR ELLIPTICAL FLAG (votecol = 1)
+	if g.shape == (mbins, 3):
 		return g
 	else:
-		print 'Wrong dimensions!  Guess array must have', mbins, 'rows and 6 columns!'
+		print 'Wrong dimensions!  Guess array must have', mbins, 'rows and 3 columns!'
 		exit()
 
 def t_guess():
@@ -81,26 +74,21 @@ def t_guess():
 def fitmagbin(data, mbin, cbins, iteration):
 	import numpy as np
 	from scipy.optimize import curve_fit
+	# N, B = np.histogram(data[ : , 2], bins = cbins) # use for base case 
 	N, B = np.histogram(data[ : , 2], bins = cbins, weights = data[ : , 3]) # use for morphology
-	N, B = np.histogram(data[ : , 2], bins = cbins) # use for base case 
 	# print np.sum(np.isnan(N)) # no nans show up
 	E = np.sqrt(N)
 	E = np.where(E > 0., E, 2.)
 	# print E
 	bincenters = 0.5 * (B[1:] + B[:-1])
 
-	if iteration == 0:
-		opt, cov = curve_fit(func0, bincenters, N, p0 = g_guess[mbin, 0: ], sigma = E, maxfev = 100000)
-	if iteration == 1:
-		opt, cov = curve_fit(func1, bincenters, N, p0 = g_guess[mbin, 2: ], sigma = E, maxfev = 100000)
-	if iteration == 2:
-		opt, cov = curve_fit(func2, bincenters, N, p0 = g_guess[mbin, 4: ], sigma = E, maxfev = 100000)
+	opt, cov = curve_fit(gauss, bincenters, N, p0 = g_guess[mbin, iteration: ], sigma = E, maxfev = 100000)
 
 	err = np.sqrt(np.diagonal(cov))
 	err = np.absolute(err)
-	ERR[iteration, mbin, 2 * iteration : ] = err
+	ERR[iteration, mbin, iteration : ] = err
 	opt = np.absolute(opt)
-	OPT[iteration, mbin, 2 * iteration : ] = opt
+	OPT[iteration, mbin, iteration : ] = opt
 
 	print 'fit values'
 	fitdata = np.column_stack((opt, err))
@@ -124,9 +112,9 @@ def plotmagbin(data, best_fit, iteration, mbin, E, bincenters):
 	import matplotlib.pyplot as plt
 
 	x = np.linspace(cl, ch, num = 200)
-	gauss1 = gauss(x, best_fit[iteration, mbin, 0], best_fit[iteration, mbin, 2], best_fit[iteration, mbin, 4])
-	gauss2 = gauss(x, best_fit[iteration, mbin, 1], best_fit[iteration, mbin, 3], best_fit[iteration, mbin, 5])
-	plt.plot(x, gauss1, 'b--', x, gauss2, 'r--', x, gauss1 + gauss2, 'g')
+	gauss1 = gauss(x, best_fit[iteration, mbin, 0], best_fit[iteration, mbin, 1], best_fit[iteration, mbin, 2])
+
+	plt.plot(x, gauss1, 'k--')
 	
 	'''
 	ggauss1 = gauss(x, g_guess[mbin, 0], g_guess[mbin, 2], g_guess[mbin, 4])
@@ -135,33 +123,26 @@ def plotmagbin(data, best_fit, iteration, mbin, E, bincenters):
 	'''
 
 	plt.errorbar(bincenters, data, yerr = E, marker = 'o', fmt = 'x', color = 'g', ecolor = 'g', capsize = 6)
-	plotoptions('color (u - r)', 'frequency', 'iteration %s, bin %s (%s < r < %s)' %(iteration, index, edges[index, 0], edges[index, 1]), True, True, ('blue cloud', 'red series', 'envelope gaussian'))
+	plotoptions('color (u - r)', 'frequency', 'iteration %s, bin %s (%s < r < %s)' %(iteration, index, edges[index, 0], edges[index, 1]), True, False, ('envelope gaussian'))
 
 def tanhlin(x, p0, p1, q0, q1, q2):
 	import numpy as np
 	return p0 + p1 * (x + 20.) + q0 * np.tanh((x - q1)/q2)
 
-def tanhlinfit(blue_col, red_col):
+def tanhlinfit(blue_col):
 	from scipy.optimize import curve_fit
-	bluefit, bluefit_e = curve_fit(tanhlin, middles, OPT[iteration, : , blue_col], sigma = ERR[iteration, : , blue_col], p0 = t_guess[iteration, 0], maxfev = 100000)
-	redfit, redfit_e = curve_fit(tanhlin, middles, OPT[iteration, : ,  red_col], sigma = ERR[iteration, : , red_col], p0 = t_guess[iteration, 0], maxfev = 100000)
-	return bluefit, redfit
+	bluefit, bluefit_e = curve_fit(tanhlin, middles[:-1], OPT[iteration, :-1 , blue_col], sigma = ERR[iteration, : -1, blue_col], p0 = t_guess[iteration, 0], maxfev = 100000)
 
-def tanhlinplot(bluefit, redfit, blue_col, red_col):
+	return bluefit
+
+def tanhlinplot(bluefit, blue_col):
 	import matplotlib.pyplot as plt
 
 	m = np.linspace(rl, rh, 200)
 	plt.plot(m, tanhlin(m, bluefit[0], bluefit[1], bluefit[2], bluefit[3], bluefit[4]), color = 'b', linestyle = '-')
-	plt.plot(m, tanhlin(m, redfit[0], redfit[1], redfit[2], redfit[3], redfit[4]), color = 'r', linestyle = '-')
-
-	gtan1 = tanhlin(m, t_guess[iteration, 0, 0], t_guess[iteration, 0, 1], t_guess[iteration, 0, 2], t_guess[iteration, 0, 3], t_guess[iteration, 0, 4])
-	gtan2 = tanhlin(m, t_guess[iteration, 1, 0], t_guess[iteration, 1, 1], t_guess[iteration, 1, 2], t_guess[iteration, 1, 3], t_guess[iteration, 1, 4])
-	plt.plot(m, gtan1, 'b:', m, gtan2, 'r:')
 
 	#	first plot the blue cloud data points
 	plt.errorbar(middles, OPT[iteration, : , blue_col], yerr = ERR[iteration, : , blue_col], marker = 'd', c = 'b', fmt = 'd', ecolor = 'b')
-	#	now plot the red cloud data points
-	plt.errorbar(middles, OPT[iteration, : , red_col], yerr = ERR[iteration, : , red_col], marker = 'x', c = 'r', fmt = 'x', ecolor = 'r')
 
 def makelogfile(zooversion, destination, target, method):	# only writes to a subdirectory of where the script is originally running!
 	# target: 'what population are we supposed to be targeting?' (STRING: ell, spi, or all)
@@ -205,9 +186,9 @@ rl = -24.
 rh = -17.7
 mbins = 8
 cbins = 20
-votecol = 4
+votecol = 1
 
-mixed_data = usefits('/data/lucifer1.1/users/zpace/gz2_debiased_main.fits', 240, 242, votecol, (cl, ch), (rl, rh))	# returns array( [ u, r, u - r] )
+mixed_data = usefits('../../Downloads/Zoo1_CM2_zjpace.fit', 6, 7, votecol, (cl, ch), (rl, rh))	# returns array( [ u, r, u - r] )
 
 samplesize = len(mixed_data)
 print 'Size of Sample:', samplesize
@@ -215,7 +196,7 @@ print 'Size of Sample:', samplesize
 binned_data, edges, middles = binme(mixed_data, mbins, (cl, ch), (rl, rh))	# returns list of arrays, binned by r magnitude
 print edges, middles
 
-OPT, ERR = fit_arrays(mbins)	# returns an empty 3-deep, mbins-down, 6-across array for each the optimized parameters and the error matrix
+OPT, ERR = fit_arrays(mbins)	# returns an empty 3-deep, mbins-down, 3-across array for each the optimized parameters and the error matrix
 
 g_guess = g_guess(mbins)
 
@@ -234,32 +215,28 @@ for index, b in enumerate(binned_data):
 
 t_guess = t_guess()
 
-bluefit_sig, redfit_sig = tanhlinfit(0, 1)
+bluefit_sig = tanhlinfit(0)
 '''print 'blue:'
 print bluefit_sig
 print 'red:'
 print redfit_sig'''
 
-S = np.array( [ tanhlin(middles, bluefit_sig[0], bluefit_sig[1],  bluefit_sig[2],  bluefit_sig[3],  bluefit_sig[4]) , tanhlin(middles, redfit_sig[0], redfit_sig[1],  redfit_sig[2],  redfit_sig[3],  redfit_sig[4]) ] )
+S = np.array( [ tanhlin(middles, bluefit_sig[0], bluefit_sig[1],  bluefit_sig[2],  bluefit_sig[3],  bluefit_sig[4]) ] )
 
 # print S
 # print OPT[0, : , 0]
 
-OPT[2, : , 0] = S[0, : ]
-OPT[2, : , 1] = S[1, : ]
-OPT[1, : , 0] = S[0, : ]
-OPT[1, : , 1] = S[1, : ]
+OPT[2, : , 0] = S
+OPT[1, : , 0] = S
 
 ERR[2, : , 0] = ERR[0, : , 0]
-ERR[2, : , 1] = ERR[0, : , 1]
 ERR[1, : , 0] = ERR[0, : , 0]
-ERR[1, : , 1] = ERR[0, : , 1]
 
 # print 'OPT:', '\n', OPT
 # print 'ERR:', '\n', ERR
 
-tanhlinplot(bluefit_sig, redfit_sig, 0, 1)
-plotoptions('r magnitude', 'st. dev.', 'color spread of magnitude bins', True, True, ('blue series computer fit', 'red series computer fit', 'blue series Baldry fit', 'red series Baldry fit'))
+tanhlinplot(bluefit_sig, 0)
+plotoptions('r magnitude', 'st. dev.', 'color spread of magnitude bins', True, True, ('combined series fit'))
 
 # =====
 # iteration 1 (fit mean & amplitude, fix mean)
@@ -271,7 +248,7 @@ for index, b in enumerate(binned_data):
 	N, E, bincenters = fitmagbin(b, index, cbins, iteration)
 	# plotmagbin(N, OPT, iteration, index, E, bincenters)
 	
-bluefit_mu, redfit_mu = tanhlinfit(2,3)
+bluefit_mu = tanhlinfit(1)
 
 '''print 'blue:'
 print bluefit_mu
@@ -390,6 +367,32 @@ ax = fig.add_subplot(111, projection='3d')
 ax.plot_surface(r_array, c_array, Z_tot/np.amax(Z_tot), rstride = 8, cstride = 8, alpha = .75, cmap = 'spectral')
 plt.show()
 
+'''def clims(r):
+	return tanhlin(r, bluefit_mu[0], bluefit_mu[1], bluefit_mu[2], bluefit_mu[3], bluefit_mu[4]), tanhlin(r, redfit_mu[0], redfit_mu[1], redfit_mu[2], redfit_mu[3], redfit_mu[4])
+
+def min_at_mag(r):
+	import numpy as np
+	color = np.linspace(clims(r)[0], clims(r)[1], 100)
+	vals = f_r(r, color) + f_b(r, color)
+	mag_min = np.min(vals)
+	i = list(vals).index(mag_min)
+	min_color = color[i]
+	return min_color
+
+def fit_mtn_pass(r, magsamples):
+	import numpy as np
+	from scipy.optimize import curve_fit
+	samplemags = np.linspace(rl, rh, magsamples)
+	mins_at_mags = min_at_mag(samplemags)
+	opt = curve_fit(tanhlin, r, mins_at_mags, p0 = 0.5 * (t_guess[0] + t_guess[1]), maxfev = 100000)
+	return opt
+
+samples = 10
+
+r_test = np.linspace(-24., -17.7, samples)
+
+split = fit_mtn_pass(r_test, samples)'''
+
 plt.figure()
 m = np.linspace(rl, rh, 200)
 plt.plot(m, tanhlin(m, bluefit_mu[0], bluefit_mu[1], bluefit_mu[2], bluefit_mu[3], bluefit_mu[4]), color = 'b', linestyle = '-')
@@ -409,4 +412,4 @@ CB.ax.set_position([ll, b+0.1*h, ww, h*0.8])
 plotoptions('r magnitude', 'color', 'Distribution of galaxies', True, True, ('mean color of red series','mean color of blue cloud','split function'))
 plt.show()
 
-makelogfile(1, 'zoo1/deb/ell', 'ell', 'deb')
+makelogfile(1, 'zoo1/flags/spi', 'spi', 'flags')

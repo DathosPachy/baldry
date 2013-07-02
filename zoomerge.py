@@ -27,7 +27,8 @@ def loadfiles(z1file, z2file, morph_col):
 	print 'Z2:'
 	print Z2
 	
-	sort_idx = np.argsort(Z1[:, 0])
+	# return the indices that would sort Z1
+	sort_idx = np.argsort(zoo1_objID)
 	print 'sort_idx:'
 	print sort_idx
 	sorted_insert = np.searchsorted(Z1[sort_idx, 0], Z2[:, 0], side='left')
@@ -39,7 +40,7 @@ def loadfiles(z1file, z2file, morph_col):
 	
 	zoo2_morph = np.hstack( ( Z2, Z1[unsorted_insert, 1:] ) )
 	print zoo2_morph
-	return zoo2_morph
+	return zoo2_morph, cols2names[morph_col]
 
 '''
 def usefits(filename, ucol, rcol, votecol, (cl, ch), (rl, rh)):
