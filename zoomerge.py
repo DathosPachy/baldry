@@ -1,4 +1,5 @@
 # merge tables for Zoo1 and Zoo2
+# no longer necessary: use topcat
 
 def loadfiles(z1file, z2file, morph_col):
 	import numpy as np
