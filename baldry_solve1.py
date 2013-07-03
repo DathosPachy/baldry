@@ -10,6 +10,9 @@ def usefits(filename, ucol, rcol, votecol, (cl, ch), (rl, rh)):
 	hdulist = open(filename)
 	raw = hdulist[1].data
 	u, r = raw.field(ucol), raw.field(rcol)
+	cols = hdulist[1].columns
+	colsnames = cols.names
+	print 'Selecting based on column', votecol, ':', colsnames[votecol]
 	
 	colcond = ((u - r) < ch) & ((u - r) > cl) & (r > rl) & (r < rh)
 	raw = raw[colcond]
@@ -42,6 +45,14 @@ def fit_arrays(mbins):		# allows us to keep all fit values safe in an array and 
 def gauss(x, s, mu, a):
 	import numpy as np
 	return a * np.exp(-((x - mu)**2 / (2. * s**2)))
+
+def gauss1(x, mu, a):
+	import numpy as np
+	return gauss(x, OPT[2, index, 0], mu, a)
+
+def gauss2(x, a):
+	import numpy as np
+	return gauss1(x, OPT[2, index, 1], a)
 
 def func0(x, s1, s2, mu1, mu2, a1, a2):
 	import numpy as np
@@ -82,7 +93,12 @@ def fitmagbin(data, mbin, cbins, iteration):
 	# print E
 	bincenters = 0.5 * (B[1:] + B[:-1])
 
-	opt, cov = curve_fit(gauss, bincenters, N, p0 = g_guess[mbin, iteration: ], sigma = E, maxfev = 100000)
+	if iteration == 0:
+		opt, cov = curve_fit(gauss, bincenters, N, p0 = g_guess[mbin, 0: ], sigma = E, maxfev = 100000)
+	if iteration == 1:
+		opt, cov = curve_fit(gauss1, bincenters, N, p0 = g_guess[mbin, 1: ], sigma = E, maxfev = 100000)
+	if iteration == 2:
+		opt, cov = curve_fit(gauss2, bincenters, N, p0 = g_guess[mbin, 2: ], sigma = E, maxfev = 100000)
 
 	err = np.sqrt(np.diagonal(cov))
 	err = np.absolute(err)
@@ -210,8 +226,7 @@ iteration = 0
 for index, b in enumerate(binned_data):
 	print 'color bin', index
 	N, E, bincenters = fitmagbin(b, index, cbins, iteration)
-	# print OPT[iteration, : , 0]	# watch the OPT array being built
-	plotmagbin(N, OPT, iteration, index, E, bincenters)
+	# plotmagbin(N, OPT, iteration, index, E, bincenters)
 
 t_guess = t_guess()
 
@@ -255,15 +270,13 @@ print bluefit_mu
 print 'red:'
 print redfit_mu'''
 
-M = np.array( [ tanhlin(middles, bluefit_mu[0], bluefit_mu[1],  bluefit_mu[2],  bluefit_mu[3],  bluefit_mu[4]) , tanhlin(middles, redfit_mu[0], redfit_mu[1],  redfit_mu[2],  redfit_mu[3],  redfit_mu[4]) ] )
+M = np.array( [ tanhlin(middles, bluefit_mu[0], bluefit_mu[1],  bluefit_mu[2],  bluefit_mu[3],  bluefit_mu[4]) ] )
 
 OPT[2, : , 2] = M[0, : ]
-OPT[2, : , 3] = M[1, : ]
 
 ERR[2, : , 2] = ERR[1, : , 2]
-ERR[2, : , 3] = ERR[1, : , 3]
 
-tanhlinplot(bluefit_mu, redfit_mu, 2, 3)
+tanhlinplot(bluefit_mu, 1)
 plotoptions('r magnitude', 'mean color (u - r)', 'mean color of magnitude bins', True, True, ('blue series computer fit', 'red series computer fit', 'blue series Baldry fit', 'red series Baldry fit'))
 
 # =====
@@ -284,17 +297,17 @@ final_errors = ERR[2]
 
 import numpy as np
 from scipy.optimize import curve_fit
-bluefit_a, bluefit_a_e = curve_fit(gauss, middles, OPT[2, : , 4], p0 = (1., -19.6, 13500.) )
-redfit_a, redfit_a_e = curve_fit(gauss, middles, OPT[2, : , 5], p0 = (1., -20.5, 18500.) )
+bluefit_a = curve_fit(gauss, middles, OPT[2, : , 2], p0 = (1., -19.6, 13500.) )
 
 '''print 'blue:'
 print bluefit_a
 print 'red:'
 print redfit_a'''
 
+print bluefit_a
+
 x = np.linspace(rl, rh, 200)
 plt.plot(x, gauss(x, bluefit_a[0], bluefit_a[1], bluefit_a[2]), c = 'b')
-plt.plot(x, gauss(x, redfit_a[0], redfit_a[1], redfit_a[2]), c = 'r')
 
 plt.errorbar(middles, OPT[iteration, : , 4], yerr = ERR[iteration, : , 4], marker = 'd', c = 'b', fmt = 'd', ecolor = 'b')
 	#	now plot the red cloud data points
