@@ -29,12 +29,8 @@ def usefits(filename, ucol, rcol, (cl, ch), (rl, rh)):
 		print 'Weighting by column', weight_col, ':', zoocolsnames[int(weight_col)]	
 
 
-	mixed_data = np.column_stack((u, r, u - r, vote)) # use for vote morphology
-	# mixed_data = np.column_stack((u, r, u - r)) # use for base case
+	mixed_data = np.column_stack((u, r, u - r, vote))
 	print 'mixed data:', '\n', mixed_data
-	
-
-
 	return mixed_data
 
 def binme(data, mag_bins, (cl, ch), (rl, rh)):
@@ -76,7 +72,7 @@ def func2(x, a1, a2):
 def g_guess(mbins):
 	import numpy as np
 	from sys import exit
-	g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT
+	g = np.array( [ [.2, .4, 1.7, 2.475, 100., 700.], [.2, .15, 1.75, 2.475, 2000., 6000.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.5, 2.45, 5000., 6500.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.35, .175, 1.35, 2.25, 1600., 800.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT
 	if g.shape == (mbins, 6):
 		return g
 	else:
@@ -92,8 +88,7 @@ def t_guess():
 def fitmagbin(data, mbin, cbins, iteration):
 	import numpy as np
 	from scipy.optimize import curve_fit
-	N, B = np.histogram(data[ : , 2], bins = cbins, weights = data[ : , 3]) # use for morphology
-	# N, B = np.histogram(data[ : , 2], bins = cbins) # use for base case 
+	N, B = np.histogram(data[ : , 2], bins = cbins, weights = data[ : , 3]) # data[ : , 3] is just all ones for unweighted option
 	# print np.sum(np.isnan(N)) # no nans show up
 	E = np.sqrt(N)
 	E = np.where(E > 0., E, 2.)
@@ -106,8 +101,11 @@ def fitmagbin(data, mbin, cbins, iteration):
 		opt, cov = curve_fit(func1, bincenters, N, p0 = g_guess[mbin, 2: ], sigma = E, maxfev = 100000)
 	if iteration == 2:
 		opt, cov = curve_fit(func2, bincenters, N, p0 = g_guess[mbin, 4: ], sigma = E, maxfev = 100000)
-
-	err = np.sqrt(np.diagonal(cov))
+	print type(cov)
+	if type(cov) == float:
+		err = np.ones(len(opt))
+	else:
+		err = np.sqrt(np.diagonal(cov))
 	err = np.absolute(err)
 	ERR[iteration, mbin, 2 * iteration : ] = err
 	opt = np.absolute(opt)
@@ -139,11 +137,11 @@ def plotmagbin(data, best_fit, iteration, mbin, E, bincenters):
 	gauss2 = gauss(x, best_fit[iteration, mbin, 1], best_fit[iteration, mbin, 3], best_fit[iteration, mbin, 5])
 	plt.plot(x, gauss1, 'b--', x, gauss2, 'r--', x, gauss1 + gauss2, 'g')
 	
-	'''
+	
 	ggauss1 = gauss(x, g_guess[mbin, 0], g_guess[mbin, 2], g_guess[mbin, 4])
 	ggauss2 = gauss(x, g_guess[mbin, 1], g_guess[mbin, 3], g_guess[mbin, 5])
 	plt.plot(x, ggauss1, 'b:', x, ggauss2, 'r:', x, ggauss1 + ggauss2, 'g:')
-	'''
+	
 
 	plt.errorbar(bincenters, data, yerr = E, marker = 'o', fmt = 'x', color = 'g', ecolor = 'g', capsize = 6)
 	plotoptions('color (u - r)', 'frequency', 'iteration %s, bin %s (%s < r < %s)' %(iteration, index, edges[index, 0], edges[index, 1]), True, True, ('blue cloud', 'red series', 'envelope gaussian'))
@@ -217,13 +215,14 @@ rh = -17.7
 mbins = 8
 cbins = 20
 
-mixed_data = usefits('/data/lucifer1.1/users/zpace/gz2_debiased_metadata.fits', 277, 278, (cl, ch), (rl, rh))	# returns array( [ u, r, u - r] )
+mixed_data = usefits('/data/lucifer1.1/users/zpace/gz2_debiased_metadata.fits', 277, 279, (cl, ch), (rl, rh))	# returns array( [ u, r, u - r] )
 
 samplesize = len(mixed_data)
 print 'Size of Sample:', samplesize
 
 binned_data, edges, middles = binme(mixed_data, mbins, (cl, ch), (rl, rh))	# returns list of arrays, binned by r magnitude
-print edges, middles
+print edges
+print middles
 
 OPT, ERR = fit_arrays(mbins)	# returns an empty 3-deep, mbins-down, 6-across array for each the optimized parameters and the error matrix
 
@@ -419,4 +418,4 @@ CB.ax.set_position([ll, b+0.1*h, ww, h*0.8])
 plotoptions('r magnitude', 'color', 'Distribution of galaxies', True, True, ('mean color of red series','mean color of blue cloud','split function'))
 plt.show()
 
-makelogfile(1, 'zoo1/flags/ell', 'ell', 'flags')
+# makelogfile(1, 'zoo1/flags/ell', 'ell', 'flags')
