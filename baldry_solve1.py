@@ -99,6 +99,8 @@ def fitmagbin(data, mbin, cbins, iteration):
 		opt, cov = curve_fit(gauss1, bincenters, N, p0 = g_guess[mbin, 1: ], sigma = E, maxfev = 100000)
 	if iteration == 2:
 		opt, cov = curve_fit(gauss2, bincenters, N, p0 = g_guess[mbin, 2: ], sigma = E, maxfev = 100000)
+		print g_guess[mbin, 2:]
+		print opt
 
 	err = np.sqrt(np.diagonal(cov))
 	err = np.absolute(err)
@@ -108,6 +110,7 @@ def fitmagbin(data, mbin, cbins, iteration):
 
 	print 'fit values'
 	fitdata = np.column_stack((opt, err))
+	print opt
 	print fitdata
 	return N, E, bincenters
 
@@ -251,7 +254,7 @@ ERR[1, : , 0] = ERR[0, : , 0]
 # print 'ERR:', '\n', ERR
 
 tanhlinplot(bluefit_sig, 0)
-plotoptions('r magnitude', 'st. dev.', 'color spread of magnitude bins', True, True, ('combined series fit'))
+plotoptions('r magnitude', 'st. dev.', 'color spread of magnitude bins', True, False, ('combined series fit'))
 
 # =====
 # iteration 1 (fit mean & amplitude, fix mean)
@@ -277,7 +280,7 @@ OPT[2, : , 2] = M[0, : ]
 ERR[2, : , 2] = ERR[1, : , 2]
 
 tanhlinplot(bluefit_mu, 1)
-plotoptions('r magnitude', 'mean color (u - r)', 'mean color of magnitude bins', True, True, ('blue series computer fit', 'red series computer fit', 'blue series Baldry fit', 'red series Baldry fit'))
+plotoptions('r magnitude', 'mean color (u - r)', 'mean color of magnitude bins', True, False, ('blue series computer fit', 'red series computer fit', 'blue series Baldry fit', 'red series Baldry fit'))
 
 # =====
 # iteration 2 (fit amplitude, fix amplitude)
@@ -287,9 +290,9 @@ iteration = 2
 for index, b in enumerate(binned_data):
 	print 'color bin', index
 	N, E, bincenters = fitmagbin(b, index, cbins, iteration)
-	# plotmagbin(N, OPT, iteration, index, E, bincenters)
+	plotmagbin(N, OPT, iteration, index, E, bincenters)
 
-	#	first plot the blue cloud data points
+	# first plot the blue cloud data points
 import matplotlib.pyplot as plt
 
 final_params = OPT[2]
@@ -297,7 +300,7 @@ final_errors = ERR[2]
 
 import numpy as np
 from scipy.optimize import curve_fit
-bluefit_a = curve_fit(gauss, middles, OPT[2, : , 2], p0 = (1., -19.6, 13500.) )
+bluefit_a, bluefit_a_e = curve_fit(gauss, middles, OPT[2, : , 2], p0 = (1., -19.6, 13500.) )
 
 '''print 'blue:'
 print bluefit_a
@@ -309,18 +312,15 @@ print bluefit_a
 x = np.linspace(rl, rh, 200)
 plt.plot(x, gauss(x, bluefit_a[0], bluefit_a[1], bluefit_a[2]), c = 'b')
 
-plt.errorbar(middles, OPT[iteration, : , 4], yerr = ERR[iteration, : , 4], marker = 'd', c = 'b', fmt = 'd', ecolor = 'b')
-	#	now plot the red cloud data points
-plt.errorbar(middles, OPT[iteration, : , 5], yerr = ERR[iteration, : , 5], marker = 'x', c = 'r', fmt = 'x', ecolor = 'r')
+plt.errorbar(middles, OPT[iteration, : , 2], yerr = ERR[iteration, : , 2], marker = 'd', c = 'b', fmt = 'd', ecolor = 'b')
 
-plotoptions('r magnitude', 'counts at peak', 'color abundance', True, True, ('blue fit', 'red fit'))
+plotoptions('r magnitude', 'counts', 'counts at peak color bin', True, False, ('blue fit', 'red fit'))
 
-A = np.array( [ gauss(middles, bluefit_a[0], bluefit_a[1], bluefit_a[2]), gauss(middles, redfit_a[0], redfit_a[1], redfit_a[2]) ] )
+A = np.array( [ gauss(middles, bluefit_a[0], bluefit_a[1], bluefit_a[2]) ] )
 
 print A
 
-final_params[ : , 4] = A[0]
-final_params[ : , 5] = A[1]
+final_params[ : , 2] = A[0]
 
 # =====
 # Now try plotting a 3d double-gaussian
