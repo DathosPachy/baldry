@@ -4,20 +4,37 @@
 # weights bins by total bin based on either flag value OR debiased vote fraction, based on votecol specified in usefits
 # fits and outputs parameters for tanhlin(s1/s2/m1/m2)
 
-def usefits(filename, ucol, rcol, votecol, (cl, ch), (rl, rh)):
+def usefits(filename, ucol, rcol, (cl, ch), (rl, rh)):
 	import numpy as np
 	from pyfits import open
-	hdulist = open(filename)
-	raw = hdulist[1].data
-	u, r = raw.field(ucol), raw.field(rcol)
+	zoo_raw = open(filename)
+	zoo = zoo_raw[1].data
+	u, r = zoo.field(ucol), zoo.field(rcol)
+	print u
+	print r
 	colcond = ((u - r) < ch) & ((u - r) > cl) & (r > rl) & (r < rh)
-	print sum(colcond)
-	raw = raw[colcond]
-	print raw
-	u, r, vote = np.asfarray(raw.field(ucol), dtype = float), np.asfarray(raw.field(rcol), dtype = float), np.asfarray(raw.field(votecol), dtype = float)
+	zoo = zoo[colcond]
+
+	u, r = np.asfarray(zoo.field(ucol), dtype = float), np.asfarray(zoo.field(rcol), dtype = float)
+	
+	weight_y_n = raw_input('Weight (0/1)? ')
+	if int(weight_y_n) == 0:
+		vote = np.ones(len(u))
+	else:
+		print 'Possible weighting quantities: ', '\n', zoo_raw[1].header
+		weight_col = raw_input('Choose column for weighting: ')
+		vote = np.asfarray(zoo.field(int(weight_col)), dtype = float)
+		zoocols = zoo_raw[1].columns
+		zoocolsnames = zoocols.names
+		print 'Weighting by column', weight_col, ':', zoocolsnames[int(weight_col)]	
+
+
 	mixed_data = np.column_stack((u, r, u - r, vote)) # use for vote morphology
-	mixed_data = np.column_stack((u, r, u - r)) # use for base case
+	# mixed_data = np.column_stack((u, r, u - r)) # use for base case
 	print 'mixed data:', '\n', mixed_data
+	
+
+
 	return mixed_data
 
 def binme(data, mag_bins, (cl, ch), (rl, rh)):
@@ -59,13 +76,7 @@ def func2(x, a1, a2):
 def g_guess(mbins):
 	import numpy as np
 	from sys import exit
-	# g = np.array( [ [.5, .3, 2.0, 2.52, 120., 325.], [.75, .3, 2.1, 2.57, 450., 1050.], [.6, .4, 2.1, 2.55, 1800., 4800.], [.7, .4, 1.85, 2.5, 4250., 13000.], [.7, .4, 1.8, 2.5, 12000., 16500.], [.3, .2, 2.0, 2.65, 12000., 25000.], [.7, .6, 1.5, 2.5, 20000., 20000.], [.6, .8, 1.3, 2.2, 10000., 5000.], [.2, .1, 1.3, 2.3, 5000., 500.], [.8, .5, 1.1, 2.35, 5500., 2.5] ] ) # rh = -18, mbins = 10, cbins = 10
-	# g = np.array( [ [.5, .3, 2.0, 2.52, 120., 325.], [.75, .3, 2.1, 2.57, 450., 1050.], [.6, .4, 2.1, 2.55, 1800., 4800.], [.7, .4, 1.85, 2.5, 4250., 13000.], [.7, .4, 1.8, 2.5, 12000., 16500.], [.3, .2, 2.0, 2.65, 12000., 25000.], [.25, .25, 1.5, 2.5, 20000., 20000.], [.3, .3, 1.5, 2.2, 12000., 5000.], [.2, .1, 1.3, 2.3, 5000., 500.] ] ) # rh = -17.7, mbins = 9, cbins = 20
-	# g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT, AND FOR UNC FLAG (votecol = 2)
-	# g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.75, 2.5, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 175000., 90000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE FOR SPIRAL FLAG (votecol = 0)
-	# g = np.array( [ [.2, .15, 1.2, 2.45, 5., 13.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.45, 2.3, 8000., 4700.], [.2, .5, 1.3, 2.3, 3., 600.] ] ) # USE THIS FOR ELLIPTICAL FLAG (votecol = 1)
-	# g = np.array( [ [.2, .15, 1.15, 2.45, 5., 13.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 15000., 22000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.3, 2.4, 100., 100.], [.2, .45, 1.3, 2.3, 50., 10.] ] ) # USE THIS FOR ELLIPTICAL deb (votecol = 4)
-	g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT, AND FOR spi_deb(votecol = 3)
+	g = np.array( [ [.2, .15, 1.8, 2.55, 80., 245.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .15, 2.1, 2.55, 325., 925.], [.6, .3, 1.6, 2.55, 5000., 5000.], [.3, .3, 1.4, 2.5, 10000., 8000.], [.6, .3, 1.5, 2.45, 9000., 10000.], [.2, .5, 1.3, 2., 1700., 90.] ] ) # USE THIS AS DEFAULT
 	if g.shape == (mbins, 6):
 		return g
 	else:
@@ -82,7 +93,7 @@ def fitmagbin(data, mbin, cbins, iteration):
 	import numpy as np
 	from scipy.optimize import curve_fit
 	N, B = np.histogram(data[ : , 2], bins = cbins, weights = data[ : , 3]) # use for morphology
-	N, B = np.histogram(data[ : , 2], bins = cbins) # use for base case 
+	# N, B = np.histogram(data[ : , 2], bins = cbins) # use for base case 
 	# print np.sum(np.isnan(N)) # no nans show up
 	E = np.sqrt(N)
 	E = np.where(E > 0., E, 2.)
@@ -205,9 +216,8 @@ rl = -24.
 rh = -17.7
 mbins = 8
 cbins = 20
-votecol = 4
 
-mixed_data = usefits('/data/lucifer1.1/users/zpace/gz2_debiased_main.fits', 240, 242, votecol, (cl, ch), (rl, rh))	# returns array( [ u, r, u - r] )
+mixed_data = usefits('/data/lucifer1.1/users/zpace/gz2_debiased_metadata.fits', 277, 278, (cl, ch), (rl, rh))	# returns array( [ u, r, u - r] )
 
 samplesize = len(mixed_data)
 print 'Size of Sample:', samplesize
@@ -409,4 +419,4 @@ CB.ax.set_position([ll, b+0.1*h, ww, h*0.8])
 plotoptions('r magnitude', 'color', 'Distribution of galaxies', True, True, ('mean color of red series','mean color of blue cloud','split function'))
 plt.show()
 
-makelogfile(1, 'zoo1/deb/ell', 'ell', 'deb')
+makelogfile(1, 'zoo1/flags/ell', 'ell', 'flags')
